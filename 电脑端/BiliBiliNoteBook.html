@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiliBiliNoteBook - 让知识流动起来</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;900&family=JetBrains+Mono:wght@300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: hsl(45, 35%, 92%);
+      --ink: hsl(30, 15%, 20%);
+      --accent: hsl(25, 60%, 45%);
+      --subtle: hsl(30, 10%, 60%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Serif SC', serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; font-weight: 300; }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal { animation: reveal 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+    .reveal-delay-1 { animation-delay: 0.15s; }
+    .reveal-delay-2 { animation-delay: 0.3s; }
+    .reveal-delay-3 { animation-delay: 0.45s; }
+
+    .accent-text { color: var(--accent); }
+    .subtle-text { color: var(--subtle); }
+
+    .divider {
+      height: 1px;
+      background: var(--ink);
+      opacity: 0.1;
+    }
+
+    .image-placeholder {
+      background: linear-gradient(135deg, hsl(45, 25%, 88%) 0%, hsl(45, 20%, 85%) 100%);
+      border: 1px solid var(--ink);
+      opacity: 0.15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hover-accent { transition: color 0.3s ease; }
+    .hover-accent:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center px-8">
+      <div class="max-w-5xl w-full">
+        <div class="reveal mono text-xs tracking-widest subtle-text mb-8">AI × KNOWLEDGE × FLOW</div>
+        
+        <h1 class="reveal reveal-delay-1 text-7xl md:text-9xl font-black leading-none mb-6">
+          BiliBili<br/>NoteBook
+        </h1>
+        
+        <p class="reveal reveal-delay-2 text-xl md:text-2xl font-extralight subtle-text max-w-2xl mb-12 leading-relaxed">
+          让视频中的知识流动起来<br/>
+          从观看到内化，只需一步
+        </p>
+
+        <div class="reveal reveal-delay-3 mono text-sm subtle-text">
+          scroll to explore ↓
+        </div>
+      </div>
+    </section>
+
+    <!-- Philosophy Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-16">
+          <div class="md:col-span-2">
+            <div class="mono text-xs tracking-widest subtle-text mb-4">01 / PHILOSOPHY</div>
+            <h2 class="text-5xl font-black mb-8">思考</h2>
+          </div>
+          
+          <div class="md:col-span-3 space-y-16">
+            <div>
+              <h3 class="text-2xl font-bold mb-4 accent-text">知识的流动性</h3>
+              <p class="font-light leading-loose subtle-text">
+                视频是流动的，但记忆是固化的。<br>
+                我们需要一个中间态——让知识在流动中沉淀，在沉淀中保持活性。
+              </p>
+            </div>
+
+            <div>
+              <h3 class="text-2xl font-bold mb-4 accent-text">AI 时代的学习</h3>
+              <p class="font-light leading-loose subtle-text">
+                AI 不是替代思考，而是放大思考。<br>
+                它帮你记录、整理、关联，让你专注于更高层次的理解与创造。
+              </p>
+            </div>
+
+            <div>
+              <h3 class="text-2xl font-bold mb-4 accent-text">从收藏到内化</h3>
+              <p class="font-light leading-loose subtle-text">
+                收藏夹不是终点，而是起点。<br>
+                真正的学习发生在你与内容对话的那一刻。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider max-w-4xl mx-auto my-32"></div>
+
+    <!-- Core Value Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="mono text-xs tracking-widest subtle-text mb-4">02 / CORE VALUE</div>
+        <h2 class="text-5xl font-black mb-20">核心价值</h2>
+
+        <!-- Image Placeholder -->
+        <!-- <div class="image-placeholder w-full h-96 mb-20 rounded">
+          <span class="mono text-xs subtle-text">[ 产品演示图 ]</span>
+        </div> -->
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-20">
+          <div>
+            <div class="mono text-6xl font-light mb-6 accent-text">300ms</div>
+            <h3 class="text-xl font-bold mb-4">极速转换</h3>
+            <p class="font-light subtle-text leading-relaxed">
+              10分钟视频，300毫秒生成文章。时间不应浪费在等待上。
+            </p>
+          </div>
+
+          <div>
+            <div class="mono text-6xl font-light mb-6 accent-text">95%</div>
+            <h3 class="text-xl font-bold mb-4">准确识别</h3>
+            <p class="font-light subtle-text leading-relaxed">
+              AI识别准确率达95%，让你专注内容本身，而非校对文字。
+            </p>
+          </div>
+
+          <div>
+            <div class="mono text-6xl font-light mb-6 accent-text">∞</div>
+            <h3 class="text-xl font-bold mb-4">跨视频问答</h3>
+            <p class="font-light subtle-text leading-relaxed">
+              在所有内容中自由提问，知识不再孤立，而是相互关联。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider max-w-4xl mx-auto my-32"></div>
+
+    <!-- How It Works Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="mono text-xs tracking-widest subtle-text mb-4">03 / HOW IT WORKS</div>
+        <h2 class="text-5xl font-black mb-20">工作流程</h2>
+
+        <div class="space-y-20">
+          <div v-for="(step, index) in steps" :key="index" 
+               class="flex items-start gap-12 hover-accent cursor-pointer"
+               @click="activeStep = index">
+            <div class="mono text-5xl font-light accent-text shrink-0 w-20">{{ String(index + 1).padStart(2, '0') }}</div>
+            <div class="flex-1">
+              <h3 class="text-3xl font-bold mb-4">{{ step.title }}</h3>
+              <p class="font-light subtle-text leading-loose text-lg">{{ step.desc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider max-w-4xl mx-auto my-32"></div>
+
+    <!-- Features Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="mono text-xs tracking-widest subtle-text mb-4">04 / FEATURES</div>
+        <h2 class="text-5xl font-black mb-20">功能特性</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-24">
+          <div>
+            <div class="mono text-sm subtle-text mb-4">BATCH PROCESSING</div>
+            <h3 class="text-2xl font-bold mb-4">批量获取</h3>
+            <p class="font-light subtle-text leading-loose mb-6">
+              支持合集、UP主全部视频、收藏夹一键获取。50个视频，5秒完成。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">合集 / UP主 / 收藏夹</div>
+          </div>
+
+          <div>
+            <div class="mono text-sm subtle-text mb-4">STRUCTURED ARTICLES</div>
+            <h3 class="text-2xl font-bold mb-4">结构化文章</h3>
+            <p class="font-light subtle-text leading-loose mb-6">
+              自动生成带时间戳的结构化文章，点击即可跳转到视频对应位置。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">封面 / 文本 / 时间戳</div>
+          </div>
+
+          <div>
+            <div class="mono text-sm subtle-text mb-4">INTELLIGENT Q&A</div>
+            <h3 class="text-2xl font-bold mb-4">智能问答</h3>
+            <p class="font-light subtle-text leading-loose mb-6">
+              基于RAG技术，在所有文章中精准检索，AI自动选择相关内容回答。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">RAG / 语义检索 / 上下文理解</div>
+          </div>
+
+          <div>
+            <div class="mono text-sm subtle-text mb-4">LOCAL & SYNC</div>
+            <h3 class="text-2xl font-bold mb-4">本地优先</h3>
+            <p class="font-light subtle-text leading-loose mb-6">
+              基于Rust+Tauri开发，安装包不超过50MB，支持离线使用和多平台同步。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">Obsidian / Notion / 飞书 / 语雀</div>
+          </div>
+        </div>
+
+        <!-- Image Placeholder -->
+        <!-- <div class="image-placeholder w-full h-96 mt-24 rounded">
+          <span class="mono text-xs subtle-text">[ 功能界面截图 ]</span>
+        </div> -->
+      </div>
+    </section>
+
+    <div class="divider max-w-4xl mx-auto my-32"></div>
+
+    <!-- Target Users Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="mono text-xs tracking-widest subtle-text mb-4">05 / FOR WHOM</div>
+        <h2 class="text-5xl font-black mb-20">为谁而造</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-24">
+          <div>
+            <h3 class="text-4xl font-bold mb-6 accent-text">深度学习者</h3>
+            <p class="font-light subtle-text leading-loose text-lg mb-8">
+              你想系统学习某个领域，追随某位UP主的全部内容。你需要的不是碎片，而是体系。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">体系化 / 结构化 / 可检索</div>
+          </div>
+
+          <div>
+            <h3 class="text-4xl font-bold mb-6 accent-text">效率记录者</h3>
+            <p class="font-light subtle-text leading-loose text-lg mb-8">
+              你习惯即时记录灵感与知识点。你需要的不是手动整理，而是自动化的高效工具。
+            </p>
+            <div class="mono text-xs subtle-text opacity-50">即时捕捉 / 自动整理 / 快速回顾</div>
+          </div>
+        </div>
+
+        <!-- Image Placeholder -->
+        <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-24">
+          <div class="image-placeholder w-full h-80 rounded">
+            <span class="mono text-xs subtle-text">[ 用户场景图 1 ]</span>
+          </div>
+          <div class="image-placeholder w-full h-80 rounded">
+            <span class="mono text-xs subtle-text">[ 用户场景图 2 ]</span>
+          </div>
+        </div> -->
+      </div>
+    </section>
+
+    <div class="divider max-w-4xl mx-auto my-32"></div>
+
+    <!-- Final CTA Section -->
+    <section class="py-32 px-8">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-6xl md:text-8xl font-black mb-12 leading-tight">
+          让知识<br/>流动起来
+        </h2>
+        <p class="text-xl font-light subtle-text mb-16">
+          从此刻开始，重新定义你的学习方式
+        </p>
+        <div class="mono text-sm subtle-text">Coming Soon</div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 px-8 border-t border-opacity-10" style="border-color: var(--ink)">
+      <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <div class="mono text-xs subtle-text">© 2024 BiliBiliNoteBook</div>
+        <div class="mono text-xs subtle-text">AI × KNOWLEDGE × FLOW</div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const { createApp } = Vue
+
+    createApp({
+      data() {
+        return {
+          activeStep: null,
+          steps: [
+            { title: '输入链接', desc: '粘贴B站视频、合集、UP主或收藏夹链接，系统自动识别并获取所有视频信息。' },
+            { title: '选择视频', desc: '以列表形式展示所有视频，你可以选择特定视频或一键全选，创建专属工作空间。' },
+            { title: 'AI转换', desc: 'AI自动将视频转换为结构化文章，包含封面、文本、时间戳，平均300ms完成单个视频。' },
+            { title: '智能问答', desc: '在工作空间中自由提问，AI基于所有文章内容进行跨视频关联回答，支持创建笔记。' }
+          ]
+        }
+      }
+    }).mount('#app')
+  </script>
+</body>
+</html>

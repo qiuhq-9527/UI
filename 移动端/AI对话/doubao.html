@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artistic AI Chat - 油画质感对话机器人</title>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN (图标) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 谷歌字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Inter:wght@300;400&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tcm: {
+                            base: '#f4f1ea',    // 宣纸色
+                            ink: '#2c3e50',     // 墨色
+                            teal: '#2d5a57',    // 黛绿
+                            vermilion: '#a5433d', // 官窑红
+                            ochre: '#c49a6c'    // 赭石
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Noto Serif SC', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'apple': '0 10px 30px -10px rgba(44, 62, 80, 0.08)',
+                        'oil-inset': 'inset 0 0 1px 1px rgba(255, 255, 255, 0.2)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .oil-glass {
+                background: rgba(255, 255, 255, 0.45);
+                backdrop-filter: blur(25px) saturate(160%);
+                border: 1px solid rgba(255, 255, 255, 0.6);
+                box-shadow: inset 0 0 1px 1px rgba(255, 255, 255, 0.2);
+            }
+            .noise-bg {
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            }
+            .content-auto {
+                content-visibility: auto;
+            }
+            .accent-dot {
+                position: relative;
+            }
+            .accent-dot::before {
+                content: '';
+                position: absolute;
+                left: -0.75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background-color: theme('colors.tcm.vermilion');
+            }
+            .gradient-line {
+                height: 1px;
+                background: linear-gradient(90deg, transparent, theme('colors.tcm.ink')/30, transparent);
+            }
+            .btn-active {
+                transition: all 0.15s ease;
+            }
+            .btn-active:active {
+                transform: scale(0.98);
+                opacity: 0.8;
+            }
+            /* 隐藏滚动条 */
+            .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+    </style>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f1ea;
+            background-image: radial-gradient(circle at 20% 20%, rgba(45, 90, 87, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(165, 67, 61, 0.03) 0%, transparent 40%);
+            min-height: 100vh;
+        }
+
+        /* 水印文字样式 */
+        .watermark {
+            position: absolute;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            color: rgba(44, 62, 80, 0.03);
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="noise-bg min-h-screen flex items-center justify-center p-4 md:p-6">
+    <div id="app" class="w-full max-w-2xl mx-auto rounded-2xl overflow-hidden apple-shadow relative">
+        <!-- 背景水印 -->
+        <div class="watermark top-8 left-8 text-[12rem] leading-none -rotate-12">艺</div>
+
+        <!-- 顶部导航 -->
+        <div class="oil-glass px-5 py-4 relative z-10">
+            <h1 class="font-serif font-black text-[clamp(1.5rem,3vw,2rem)] text-tcm-ink accent-dot pl-3">
+                艺述 AI
+            </h1>
+            <p class="text-tcm-ink/60 text-sm mt-1">与艺术对话的智能伙伴</p>
+        </div>
+
+        <!-- 主内容区 - Bento 布局 -->
+        <div class="grid grid-cols-12 gap-3 p-4 relative z-10">
+            <!-- 聊天区域 - 跨全列 -->
+            <div class="col-span-12 oil-glass rounded-xl p-4 min-h-[50vh] max-h-[60vh] flex flex-col">
+                <!-- 聊天记录 -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar space-y-4 mb-4" id="chatContainer">
+                    <div v-for="(msg, index) in messages" :key="index" class="flex"
+                        :class="msg.isUser ? 'justify-end' : 'justify-start'">
+                        <div class="max-w-[80%] rounded-2xl px-4 py-3 oil-glass"
+                            :class="msg.isUser ? 'bg-tcm-vermilion/10 text-tcm-ink' : 'bg-tcm-teal/10 text-tcm-ink'">
+                            {{ msg.content }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="gradient-line my-3"></div>
+                <div class="flex items-center gap-2">
+                    <input v-model="inputMessage" type="text" placeholder="输入你的问题，与艺术对话..."
+                        class="flex-1 rounded-xl px-4 py-3 oil-glass text-tcm-ink focus:outline-none focus:ring-1 focus:ring-tcm-ochre/50"
+                        @keyup.enter="sendMessage">
+                    <button class="rounded-full p-3 oil-glass bg-tcm-vermilion/10 text-tcm-vermilion btn-active"
+                        @click="sendMessage">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 功能卡片区 - Bento 非对称布局 -->
+            <div class="col-span-12 mt-3 grid grid-cols-2 grid-rows-2 gap-3">
+                <!-- 视觉重心：纵向长卡片 -->
+                <div class="row-span-2 oil-glass rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-serif font-bold text-tcm-ink accent-dot pl-3">艺术风格</h3>
+                        <p class="text-sm text-tcm-ink/60 mt-1">探索不同的艺术表达</p>
+                    </div>
+                    <div class="space-y-2 mt-4">
+                        <button class="w-full text-left px-3 py-2 rounded-lg bg-tcm-ink/5 btn-active text-tcm-ink/80">
+                            <i class="fa-solid fa-palette mr-2 text-tcm-ochre"></i>油画
+                        </button>
+                        <button class="w-full text-left px-3 py-2 rounded-lg bg-tcm-ink/5 btn-active text-tcm-ink/80">
+                            <i class="fa-solid fa-brush mr-2 text-tcm-teal"></i>水墨
+                        </button>
+                        <button class="w-full text-left px-3 py-2 rounded-lg bg-tcm-ink/5 btn-active text-tcm-ink/80">
+                            <i class="fa-solid fa-cube mr-2 text-tcm-vermilion"></i>现代艺术
+                        </button>
+                    </div>
+                    <div class="mt-4 text-xs text-tcm-ink/40">
+                        共 12 种艺术风格可供选择
+                    </div>
+                </div>
+
+                <!-- 辅助卡片 1 -->
+                <div class="oil-glass rounded-xl p-4">
+                    <h3 class="font-serif font-bold text-tcm-ink text-lg">灵感</h3>
+                    <p class="text-sm text-tcm-ink/60 mt-1">每日艺术推荐</p>
+                    <div class="mt-3 flex justify-end">
+                        <button class="text-tcm-vermilion btn-active text-sm">
+                            <i class="fa-solid fa-lightbulb mr-1"></i> 查看
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 辅助卡片 2 -->
+                <div class="oil-glass rounded-xl p-4">
+                    <h3 class="font-serif font-bold text-tcm-ink text-lg">收藏</h3>
+                    <p class="text-sm text-tcm-ink/60 mt-1">已收藏 8 条对话</p>
+                    <div class="mt-3 flex justify-end">
+                        <button class="text-tcm-teal btn-active text-sm">
+                            <i class="fa-solid fa-bookmark mr-1"></i> 管理
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 横向长条卡片 -->
+            <div class="col-span-12 oil-glass rounded-xl p-4 mt-3">
+                <h3 class="font-serif font-bold text-tcm-ink accent-dot pl-3">关于艺述 AI</h3>
+                <p class="text-sm text-tcm-ink/70 mt-2">
+                    融合油画质感与现代科技的智能对话助手，为你解读艺术作品、提供创作灵感、解答艺术史问题。
+                    所有回答均由 AI 生成，仅供艺术交流参考。
+                </p>
+            </div>
+        </div>
+
+        <!-- 底部版权 -->
+        <div class="px-5 py-3 text-center text-tcm-ink/40 text-xs">
+            © 2025 艺述 AI · 精品艺术对话体验
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    inputMessage: '',
+                    messages: [
+                        {
+                            content: "你好！我是艺述 AI，一个专注于艺术领域的智能对话助手。无论你想了解油画、水墨还是现代艺术，我都能为你解答。",
+                            isUser: false
+                        }
+                    ]
+                };
+            },
+            methods: {
+                sendMessage() {
+                    // 去除首尾空格
+                    const message = this.inputMessage.trim();
+
+                    // 空消息不发送
+                    if (!message) return;
+
+                    // 添加用户消息
+                    this.messages.push({
+                        content: message,
+                        isUser: true
+                    });
+
+                    // 清空输入框
+                    this.inputMessage = '';
+
+                    // 模拟AI回复（实际项目中这里会调用后端API）
+                    setTimeout(() => {
+                        let reply = '';
+
+                        // 简单的回复逻辑示例
+                        if (message.includes('油画') || message.includes('颜料')) {
+                            reply = "油画颜料由颜料粉加油和胶搅拌研磨而成，主要分为矿物、植物、动物、化学合成等几大类。不同的颜料具有不同的透明度、覆盖力和干燥速度，这也是油画质感丰富的重要原因。";
+                        } else if (message.includes('水墨') || message.includes('宣纸')) {
+                            reply = "宣纸具有“韧而能润、光而不滑、洁白稠密、纹理纯净、搓折无损、润墨性强”等特点，是最适合水墨画的载体。墨分五色：焦、浓、重、淡、清，通过水量的控制可以表现出丰富的层次。";
+                        } else {
+                            reply = "感谢你的提问！艺术是一个广阔而迷人的领域，无论是艺术史、创作技巧还是作品解读，我都很乐意为你解答。你可以具体问一个关于艺术的问题，比如“印象派的特点是什么？”或者“如何开始学习油画？”。";
+                        }
+
+                        // 添加AI回复
+                        this.messages.push({
+                            content: reply,
+                            isUser: false
+                        });
+
+                        // 自动滚动到底部
+                        this.$nextTick(() => {
+                            const chatContainer = document.getElementById('chatContainer');
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        });
+
+                    }, 800);
+
+                    // 自动滚动到底部
+                    this.$nextTick(() => {
+                        const chatContainer = document.getElementById('chatContainer');
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

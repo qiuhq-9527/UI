@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiliBiliNoteBook | 知识的炼金术</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,900;1,400&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: {
+                            50: '#FDFBF7',
+                            100: '#F5F2E9', // 主背景：羊皮纸
+                            200: '#E6E0D0',
+                            900: '#1A1917', // 墨色
+                        },
+                        ink: {
+                            light: '#4A4A4A',
+                            DEFAULT: '#1C1C1E', // 正文黑
+                            deep: '#0F0F10'
+                        },
+                        accent: {
+                            DEFAULT: '#BC4732', // 朱砂红 (印章感)
+                            gold: '#C5A059'     // 烫金
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Lora', 'serif'], // 故意用衬线体作为正文
+                        serif: ['Playfair Display', 'serif'], // 标题
+                        mono: ['JetBrains Mono', 'monospace'], // 数据/标签
+                    },
+                    backgroundImage: {
+                        'grain': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.05%22/%3E%3C/svg%3E')",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 5. 背景与深度：噪点纹理叠加 */
+        body {
+            background-color: #F5F2E9;
+            color: #1C1C1E;
+            overflow-x: hidden;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+        }
+
+        /* 3. 空间与布局：流体排版 */
+        .fluid-text-h1 {
+            font-size: clamp(3.5rem, 8vw, 7rem);
+            line-height: 0.95;
+        }
+
+        .fluid-text-h2 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.1;
+        }
+
+        .fluid-text-p {
+            font-size: clamp(1rem, 1.2vw, 1.25rem);
+        }
+
+        /* 4. 动效编排：入场动画 */
+        @keyframes revealUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+                filter: blur(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        .animate-reveal {
+            animation: revealUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+            /* Initial state */
+        }
+
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+
+        .delay-500 {
+            animation-delay: 0.5s;
+        }
+
+        /* 6. 微交互与质感：磨砂玻璃与物理边框 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow:
+                0 10px 30px -10px rgba(28, 28, 30, 0.05),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow:
+                0 20px 40px -12px rgba(28, 28, 30, 0.1),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+        }
+
+        /* 自定义滚动条 - 极简 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(28, 28, 30, 0.2);
+            border-radius: 3px;
+        }
+
+        /* 特殊文字效果 */
+        .text-outline {
+            -webkit-text-stroke: 1px rgba(28, 28, 30, 0.2);
+            color: transparent;
+        }
+
+        /* 选中态 */
+        ::selection {
+            background: #BC4732;
+            color: #F5F2E9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app" class="relative min-h-screen">
+        <div class="noise-overlay"></div>
+
+        <nav class="fixed top-0 w-full z-50 px-6 py-6 flex justify-between items-center mix-blend-darken">
+            <div class="font-mono text-sm tracking-widest uppercase border-b border-ink/20 pb-1">
+                BiliBili NoteBook / v1.0
+            </div>
+            <div class="hidden md:flex gap-8 font-serif italic text-ink/70">
+                <a href="#philosophy" class="hover:text-accent transition-colors">Philosophy</a>
+                <a href="#features" class="hover:text-accent transition-colors">The Atelier</a>
+                <a href="#download" class="hover:text-accent transition-colors">Access</a>
+            </div>
+            <button
+                class="font-mono text-xs bg-ink text-paper-100 px-4 py-2 hover:bg-accent transition-colors duration-300">
+                Download_Beta
+            </button>
+        </nav>
+
+        <header
+            class="relative pt-32 pb-20 px-6 md:px-12 lg:px-24 min-h-[90vh] flex flex-col justify-center overflow-hidden">
+
+            <div
+                class="absolute top-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full bg-accent/5 blur-[120px] pointer-events-none">
+            </div>
+            <div
+                class="absolute bottom-[10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-blue-900/5 blur-[100px] pointer-events-none">
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end relative z-10">
+                <div class="lg:col-span-8">
+                    <div class="font-mono text-accent mb-4 animate-reveal">/// PROBLEM: DATA EPHEMERALITY</div>
+                    <h1 class="font-serif fluid-text-h1 font-black tracking-tight text-ink animate-reveal delay-100">
+                        Information <br>
+                        <span class="font-light italic text-ink/60">is a torrent.</span><br>
+                        Capture <span class="text-accent">Wisdom.</span>
+                    </h1>
+                </div>
+
+                <div class="lg:col-span-4 lg:pb-4 animate-reveal delay-200">
+                    <p
+                        class="font-sans text-xl leading-relaxed text-ink/80 border-l border-accent/30 pl-6 fluid-text-p">
+                        B站是年轻人的亚历山大图书馆，但视频看过即忘。<br><br>
+                        <span class="font-semibold text-ink">BiliBiliNoteBook</span>
+                        不仅仅是一个工具，它是你的数字炼金炉。将流动的视频，嬗变为永恒的结构化知识。
+                    </p>
+                    <div class="mt-8 font-mono text-xs text-ink/40">
+                        SYSTEM STATUS: ONLINE <br>
+                        AI ENGINE: READY
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                    class="text-ink">
+                    <path d="M12 5v14M19 12l-7 7-7-7" />
+                </svg>
+            </div>
+        </header>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-ink/20 to-transparent my-12"></div>
+
+        <section id="philosophy" class="py-24 px-6 md:px-12 lg:px-24">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-20">
+                <div class="relative">
+                    <span
+                        class="absolute -top-12 -left-4 font-serif text-[12rem] opacity-5 select-none pointer-events-none">01</span>
+                    <h2 class="font-serif text-4xl mb-6">The Void of Forgetting</h2>
+                    <p class="font-sans text-lg text-ink/70 leading-loose">
+                        无论是罗翔的法学思辨，还是硬核的经济学原理，收藏夹里的视频正在吃灰。手动整理笔记效率极低，知识在收藏的一瞬间就开始了遗忘的倒计时。
+                    </p>
+                </div>
+                <div class="relative pt-12 md:pt-0">
+                    <span
+                        class="absolute -top-12 -left-4 font-serif text-[12rem] opacity-5 select-none pointer-events-none text-accent">02</span>
+                    <h2 class="font-serif text-4xl mb-6">The Structure of Truth</h2>
+                    <p class="font-sans text-lg text-ink/70 leading-loose">
+                        我们打破视频的时间线性。通过 AI，我们将 UP 主的 50 个视频合集，瞬间重构为一本可检索、可问答、可批注的<strong
+                            class="text-accent border-b border-accent/30">动态书籍</strong>。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="py-24 px-6 md:px-12 lg:px-24 bg-paper-200/30 relative">
+            <div class="mb-20">
+                <div class="font-mono text-xs text-accent mb-2">/// CORE CAPABILITIES</div>
+                <h2 class="fluid-text-h2 font-serif">The Alchemist's Toolset</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-8 md:col-span-2">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="font-mono text-xs border border-ink/20 px-2 py-1 rounded-full">INGESTION</div>
+                        <div class="w-2 h-2 rounded-full bg-accent animate-pulse"></div>
+                    </div>
+                    <h3 class="font-serif text-2xl mb-4">Batch Transmutation</h3>
+                    <p class="font-sans text-ink/60 mb-8">
+                        输入博主主页或收藏夹链接。系统如同收割机一般，并行处理数百个视频。10分钟的视频，300ms 完成转写。这不是下载，这是知识的提取。
+                    </p>
+                    <div
+                        class="w-full bg-ink/5 h-24 rounded border border-ink/10 flex items-center justify-center font-mono text-xs text-ink/40">
+                        [ UI PREVIEW: Video Grid Processing... ]
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 flex flex-col justify-between bg-ink text-paper-100 border-none">
+                    <div>
+                        <div
+                            class="font-mono text-xs border border-paper-100/20 px-2 py-1 rounded-full w-fit mb-6 text-paper-100/60">
+                            INTELLIGENCE</div>
+                        <h3 class="font-serif text-2xl mb-4">Semantic Query</h3>
+                        <p class="font-sans text-paper-100/60 leading-relaxed">
+                            不再是简单的关键词搜索。基于 RAG 技术，向你的整个视频库提问：<br>
+                            <span class="italic text-accent">"在这个合集中，UP主对于'宏观调控'的核心观点是有哪几次转变？"</span>
+                        </p>
+                    </div>
+                    <div class="mt-8 pt-8 border-t border-white/10">
+                        <span class="font-mono text-xs">ACCURACY: >95%</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div class="font-mono text-xs border border-ink/20 px-2 py-1 rounded-full w-fit mb-6">ARCHIVE</div>
+                    <h3 class="font-serif text-2xl mb-4">Local Sanctuary</h3>
+                    <p class="font-sans text-ink/60 mb-4">
+                        Rust + Tauri 构建，体积 <50MB。完全本地化运行。 </p>
+                            <ul class="space-y-2 font-mono text-sm text-ink/50">
+                                <li class="flex items-center gap-2">-> Export to Notion</li>
+                                <li class="flex items-center gap-2">-> Export to Obsidian</li>
+                                <li class="flex items-center gap-2">-> Export to Lark</li>
+                            </ul>
+                </div>
+
+                <div class="glass-card p-8 md:col-span-2">
+                    <div class="font-mono text-xs border border-ink/20 px-2 py-1 rounded-full w-fit mb-6">CONTEXT</div>
+                    <h3 class="font-serif text-2xl mb-4">Contextual Anchoring</h3>
+                    <p class="font-sans text-ink/60 mb-6">
+                        生成的文章不仅仅是文字。点击任意段落，立即跳转回视频的精确时间戳。文本与影像的完美同步，仿佛拥有了穿越时间的书签。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-32 px-6 md:px-12 lg:px-24 flex flex-col items-center justify-center text-center">
+            <h2 class="font-serif text-4xl mb-8">Try the Logic</h2>
+
+            <div class="w-full max-w-2xl glass-card p-2 md:p-4 rounded-xl text-left transition-all duration-500"
+                :class="{'scale-[1.02] shadow-2xl': isInputFocused}">
+                <div class="flex items-center gap-4 border-b border-ink/10 pb-4 mb-4 px-2">
+                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    <span class="font-mono text-xs text-ink/40 ml-auto">INPUT_MODE: URL</span>
+                </div>
+                <div class="relative">
+                    <input v-model="demoUrl" @focus="isInputFocused = true" @blur="isInputFocused = false" type="text"
+                        placeholder="Paste Bilibili Collection URL here..."
+                        class="w-full bg-transparent font-mono text-ink text-lg outline-none placeholder:text-ink/20 px-2 py-4">
+                    <button @click="simulateProcess"
+                        class="absolute right-0 top-1/2 -translate-y-1/2 bg-ink text-paper-100 font-serif italic px-6 py-2 hover:bg-accent transition-colors disabled:opacity-50"
+                        :disabled="processing">
+                        {{ processing ? 'Transmuting...' : 'Generate' }}
+                    </button>
+                </div>
+
+                <div v-if="showResult" class="mt-6 border-t border-ink/10 pt-4 animate-reveal">
+                    <div class="flex gap-4 mb-4">
+                        <div class="w-24 h-16 bg-ink/10 rounded flex items-center justify-center">
+                            <span class="font-mono text-[10px] text-ink/30">IMG</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-ink/10 w-3/4 mb-2 rounded-sm"></div>
+                            <div class="h-4 bg-ink/5 w-1/2 rounded-sm"></div>
+                        </div>
+                    </div>
+                    <div class="font-mono text-xs text-accent">
+                        > Analysis Complete. 12 Videos processed.<br>
+                        > Knowledge Graph built.<br>
+                        > Ready for Q&A.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="bg-ink text-paper-100 py-24 px-6 md:px-12 lg:px-24 border-t-4 border-accent">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+                <div class="md:col-span-2">
+                    <h2 class="font-serif text-3xl mb-6">BiliBiliNoteBook</h2>
+                    <p class="font-sans text-paper-100/60 max-w-md">
+                        For the deep learners and the archivists. <br>
+                        Let us build your second brain, starting from Bilibili.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-mono text-xs text-accent mb-6">LINKS</h4>
+                    <ul class="space-y-4 font-serif text-paper-100/80">
+                        <li><a href="#" class="hover:text-white transition-colors">GitHub Repo</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Download Mac (Intel)</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Download Mac (Silicon)</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Download Windows</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-mono text-xs text-accent mb-6">CONTACT</h4>
+                    <ul class="space-y-4 font-serif text-paper-100/80">
+                        <li>Feedback</li>
+                        <li>Twitter / X</li>
+                        <li>Discord</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-24 pt-8 border-t border-white/10 flex justify-between font-mono text-xs text-white/30">
+                <span>© 2025 BiliBiliNoteBook. All rights reserved.</span>
+                <span>DESIGNED WITH PHILOSOPHY</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue
+
+        createApp({
+            setup() {
+                const demoUrl = ref('')
+                const isInputFocused = ref(false)
+                const processing = ref(false)
+                const showResult = ref(false)
+
+                const simulateProcess = () => {
+                    if (!demoUrl.value) return;
+                    processing.value = true;
+                    showResult.value = false;
+
+                    setTimeout(() => {
+                        processing.value = false;
+                        showResult.value = true;
+                    }, 1500);
+                }
+
+                return {
+                    demoUrl,
+                    isInputFocused,
+                    processing,
+                    showResult,
+                    simulateProcess
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>

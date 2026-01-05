@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话 · 油画玻璃</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        /* 色彩体系 */
+        :root {
+            --tcm-base: #f4f1ea;
+            --tcm-ink: #2c3e50;
+            --tcm-teal: #2d5a57;
+            --tcm-vermilion: #a5433d;
+            --tcm-ochre: #c49a6c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--tcm-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 全局噪点纹理 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 环境光晕 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -20%;
+            width: 80%;
+            height: 150%;
+            background: radial-gradient(circle, rgba(197, 154, 108, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 油画玻璃态 */
+        .oil-glass {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(25px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow:
+                inset 0 0 1px 1px rgba(255, 255, 255, 0.2),
+                0 10px 30px -10px rgba(44, 62, 80, 0.08);
+        }
+
+        /* 深色油画玻璃 */
+        .oil-glass-dark {
+            background: rgba(44, 62, 80, 0.85);
+            backdrop-filter: blur(25px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow:
+                inset 0 0 1px 1px rgba(255, 255, 255, 0.05),
+                0 10px 30px -10px rgba(44, 62, 80, 0.3);
+        }
+
+        /* 隐藏滚动条 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 衬线标题 */
+        .serif-title {
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            color: var(--tcm-ink);
+        }
+
+        /* 触感反馈 */
+        .tactile:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        /* 强调圆点 */
+        .accent-dot {
+            width: 4px;
+            height: 4px;
+            background: var(--tcm-vermilion);
+            border-radius: 50%;
+        }
+
+        /* 消息气泡 */
+        .msg-user {
+            background: rgba(45, 90, 87, 0.12);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(45, 90, 87, 0.2);
+        }
+
+        .msg-ai {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        /* 输入框焦点态 */
+        .input-focus:focus {
+            outline: none;
+            border-color: var(--tcm-teal);
+            box-shadow: 0 0 0 3px rgba(45, 90, 87, 0.1);
+        }
+
+        /* 打字动画 */
+        @keyframes typing {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .typing-dot {
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* 水印 */
+        .watermark {
+            position: fixed;
+            bottom: 10%;
+            right: 5%;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 180px;
+            font-weight: 900;
+            color: rgba(44, 62, 80, 0.02);
+            pointer-events: none;
+            z-index: 0;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="relative z-10">
+        <!-- 水印 -->
+        <div class="watermark">問</div>
+
+        <!-- 主容器 -->
+        <div class="min-h-screen p-4 flex flex-col max-w-4xl mx-auto">
+            <!-- 顶部标题 Bento -->
+            <div class="grid grid-cols-3 gap-3 mb-4">
+                <!-- 主标题卡片 -->
+                <div class="col-span-2 oil-glass rounded-2xl p-6 tactile">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="accent-dot"></div>
+                        <h1 class="serif-title text-3xl">AI 对话</h1>
+                    </div>
+                    <p class="text-xs text-gray-500 font-light">Oil Glass Aesthetics</p>
+                </div>
+
+                <!-- 状态卡片 -->
+                <div class="oil-glass rounded-2xl p-6 flex flex-col justify-center items-center">
+                    <div class="text-2xl font-bold" :style="{color: 'var(--tcm-vermilion)'}">
+                        {{ messages.length }}
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">对话数</div>
+                </div>
+            </div>
+
+            <!-- 对话区域 -->
+            <div class="flex-1 oil-glass rounded-2xl p-6 mb-4 overflow-hidden flex flex-col"
+                style="height: calc(100vh - 280px);">
+                <div class="flex-1 overflow-y-auto hide-scrollbar space-y-4" ref="chatContainer">
+                    <!-- 欢迎消息 -->
+                    <div v-if="messages.length === 0" class="text-center py-12">
+                        <div class="text-6xl mb-4 opacity-20">💬</div>
+                        <p class="serif-title text-xl mb-2">开始对话</p>
+                        <p class="text-sm text-gray-500 font-light">输入你的问题，AI 将为你解答</p>
+                    </div>
+
+                    <!-- 消息列表 -->
+                    <div v-for="msg in messages" :key="msg.id"
+                        :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                        <div :class="[
+                            'max-w-[75%] rounded-2xl px-5 py-3',
+                            msg.role === 'user' ? 'msg-user' : 'msg-ai'
+                        ]">
+                            <div class="text-xs font-semibold mb-2"
+                                :style="{color: msg.role === 'user' ? 'var(--tcm-teal)' : 'var(--tcm-vermilion)'}">
+                                {{ msg.role === 'user' ? '你' : 'AI' }}
+                            </div>
+                            <div class="text-sm leading-relaxed" :style="{color: 'var(--tcm-ink)'}">
+                                {{ msg.content }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 打字中 -->
+                    <div v-if="isTyping" class="flex justify-start">
+                        <div class="msg-ai max-w-[75%] rounded-2xl px-5 py-3">
+                            <div class="text-xs font-semibold mb-2" :style="{color: 'var(--tcm-vermilion)'}">AI</div>
+                            <div class="flex gap-1">
+                                <div class="typing-dot w-2 h-2 rounded-full" :style="{background: 'var(--tcm-ochre)'}">
+                                </div>
+                                <div class="typing-dot w-2 h-2 rounded-full" :style="{background: 'var(--tcm-ochre)'}">
+                                </div>
+                                <div class="typing-dot w-2 h-2 rounded-full" :style="{background: 'var(--tcm-ochre)'}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入区域 Bento -->
+            <div class="grid grid-cols-5 gap-3">
+                <!-- 输入框 -->
+                <div class="col-span-4 oil-glass rounded-2xl p-4">
+                    <input v-model="inputText" @keyup.enter="sendMessage" type="text" placeholder="输入消息..."
+                        class="w-full bg-transparent border-none input-focus text-sm font-light"
+                        :style="{color: 'var(--tcm-ink)'}" />
+                </div>
+
+                <!-- 发送按钮 -->
+                <button @click="sendMessage" :disabled="!inputText.trim() || isTyping"
+                    class="oil-glass-dark rounded-2xl tactile flex items-center justify-center"
+                    :class="{'opacity-50 cursor-not-allowed': !inputText.trim() || isTyping}">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    messages: [],
+                    inputText: '',
+                    isTyping: false,
+                    messageId: 0
+                };
+            },
+            methods: {
+                async sendMessage() {
+                    if (!this.inputText.trim() || this.isTyping) return;
+
+                    // 添加用户消息
+                    const userMessage = {
+                        id: this.messageId++,
+                        role: 'user',
+                        content: this.inputText
+                    };
+                    this.messages.push(userMessage);
+
+                    const userInput = this.inputText;
+                    this.inputText = '';
+                    this.scrollToBottom();
+
+                    // 模拟 AI 思考
+                    this.isTyping = true;
+                    await this.delay(1000);
+
+                    // 生成 AI 回复
+                    const aiResponse = this.generateAIResponse(userInput);
+                    this.messages.push({
+                        id: this.messageId++,
+                        role: 'assistant',
+                        content: aiResponse
+                    });
+
+                    this.isTyping = false;
+                    this.scrollToBottom();
+                },
+
+                generateAIResponse(input) {
+                    const responses = [
+                        `关于「${input}」，这是一个很有深度的问题。从多个维度来看，我们可以探讨其中的关联性与可能性。`,
+                        `我理解你对「${input}」的关注。让我为你分析一下核心要点和潜在的解决方案。`,
+                        `「${input}」是一个值得深入思考的话题。根据现有的知识体系，我可以为你提供以下见解...`,
+                        `很高兴你提出「${input}」这个问题。这涉及到多个层面的考量，让我逐一为你梳理。`,
+                        `针对「${input}」，我建议从实践和理论两个角度来理解。首先...`
+                    ];
+                    return responses[Math.floor(Math.random() * responses.length)];
+                },
+
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = this.$refs.chatContainer;
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
+                },
+
+                delay(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

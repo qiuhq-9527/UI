@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiliBiliNoteBook | 知识的炼金术</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@200;300;400&family=JetBrains+Mono:wght@100;400&family=Playfair+Display:ital,wght@0,400;0,800;1,400&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#030305',
+                        starlight: '#F4F4F0',
+                        glass: 'rgba(255, 255, 255, 0.03)',
+                        'glass-border': 'rgba(255, 255, 255, 0.08)',
+                        accent: '#CC444B', // 传统的朱砂红，克制点缀
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        display: ['Cinzel', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.05%22/%3E%3C/svg%3E')",
+                    },
+                    animation: {
+                        'float': 'float 10s ease-in-out infinite',
+                        'reveal': 'reveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        reveal: {
+                            'from': { opacity: '0', transform: 'translateY(40px)', filter: 'blur(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 全局重置与环境光 */
+        body {
+            background-color: #030305;
+            color: #F4F4F0;
+            overflow-x: hidden;
+            font-feature-settings: "ss01", "ss02";
+        }
+
+        /* 噪点纹理层 */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+        }
+
+        /* 极简滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        /* 触觉质感卡片 */
+        .tactile-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+            box-shadow:
+                0 40px 80px -20px rgba(0, 0, 0, 0.7),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .tactile-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-5px);
+            box-shadow:
+                0 50px 100px -20px rgba(0, 0, 0, 0.8),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        .tactile-card:active {
+            transform: scale(0.98);
+        }
+
+        /* 选中文字样式 */
+        ::selection {
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+        }
+
+        /* 观察者动画类 */
+        .observe-enter {
+            opacity: 0;
+            transform: translateY(30px);
+            filter: blur(5px);
+        }
+
+        .observe-visible {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app" class="relative min-h-screen selection:bg-white selection:text-black">
+        <div class="noise-overlay"></div>
+
+        <div
+            class="fixed top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-blue-900/10 rounded-full blur-[120px] animate-float pointer-events-none">
+        </div>
+        <div class="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/10 rounded-full blur-[100px] animate-float pointer-events-none"
+            style="animation-delay: -5s;"></div>
+
+        <nav class="fixed top-0 w-full z-40 px-8 py-6 flex justify-between items-center mix-blend-difference">
+            <div class="font-display font-bold text-xl tracking-widest text-starlight opacity-90">
+                BN. <span class="text-xs font-mono font-thin opacity-50 tracking-normal">BiliBiliNoteBook</span>
+            </div>
+            <div class="hidden md:flex gap-8 font-mono text-xs tracking-widest text-starlight/60">
+                <a href="#" class="hover:text-white transition-colors">PHILOSOPHY</a>
+                <a href="#" class="hover:text-white transition-colors">ENGINE</a>
+                <a href="#" class="hover:text-white transition-colors">DOWNLOAD</a>
+            </div>
+        </nav>
+
+        <section class="relative min-h-screen flex flex-col justify-center px-6 md:px-20 lg:px-32 pt-20">
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+
+                <div class="lg:col-span-8 z-10">
+                    <div
+                        class="font-mono text-xs text-accent/80 tracking-[0.3em] mb-6 uppercase animate-[reveal_1s_ease-out_forwards]">
+                        Artificial Intelligence × Knowledge Management
+                    </div>
+                    <h1
+                        class="font-serif text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.95] tracking-tight text-starlight mix-blend-overlay opacity-0 animate-[reveal_1.2s_0.2s_ease-out_forwards]">
+                        Video is <br>
+                        <span class="italic font-thin text-white/70">Fleeting.</span><br>
+                        Knowledge is <br>
+                        <span class="font-display font-bold">Eternal.</span>
+                    </h1>
+
+                    <p
+                        class="mt-12 max-w-xl font-sans font-light text-lg text-white/50 leading-relaxed opacity-0 animate-[reveal_1.2s_0.4s_ease-out_forwards]">
+                        B站视频流淌而过，唯有思维沉淀永恒。<br>
+                        <strong class="text-white font-medium">BiliBiliNoteBook</strong> —— 将稍纵即逝的视频流，凝固为结构化的知识晶体。
+                    </p>
+
+                    <div class="mt-16 flex items-center gap-6 opacity-0 animate-[reveal_1.2s_0.6s_ease-out_forwards]">
+                        <button
+                            class="group relative px-8 py-4 bg-starlight text-void font-mono text-sm font-bold tracking-wider overflow-hidden">
+                            <span class="relative z-10 group-hover:text-starlight transition-colors duration-300">START
+                                ENGINE</span>
+                            <div
+                                class="absolute inset-0 bg-void transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left">
+                            </div>
+                        </button>
+                        <span class="font-mono text-xs text-white/30">v1.0.0 • Rust Core • Offline First</span>
+                    </div>
+                </div>
+
+                <div
+                    class="lg:col-span-4 h-full flex flex-col justify-end pb-4 opacity-0 animate-[reveal_1.5s_0.8s_ease-out_forwards]">
+                    <div class="tactile-card p-6 rounded-sm border-l-2 border-l-accent/50">
+                        <div class="font-mono text-[10px] text-white/40 mb-4 flex justify-between">
+                            <span>PROCESSING_STREAM...</span>
+                            <span>[RUST::TAURI]</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-1 w-full bg-white/10 overflow-hidden">
+                                <div class="h-full w-2/3 bg-white/40 animate-pulse"></div>
+                            </div>
+                            <div class="font-serif text-xl text-white/90 italic">
+                                "Structure emerges from chaos."
+                            </div>
+                            <div class="font-mono text-xs text-white/50">
+                                > 50 videos parsed in 5s<br>
+                                > Context connected<br>
+                                > Memory secured
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-32 px-6 md:px-20 relative">
+            <div class="max-w-screen-xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+                    <div v-observe>
+                        <h2 class="font-display text-4xl md:text-5xl mb-8 leading-tight">
+                            拒绝<br>收藏夹里的<br><span class="text-accent/80">数字灰尘</span>
+                        </h2>
+                        <div class="w-12 h-[1px] bg-white/30 mb-8"></div>
+                    </div>
+                    <div v-observe class="delay-200">
+                        <p class="font-serif text-xl md:text-2xl text-white/80 leading-relaxed mb-8">
+                            "收藏"往往是遗忘的开始。我们生活在一个信息过载却知识匮乏的时代。
+                        </p>
+                        <p class="font-mono text-sm text-white/40 leading-loose text-justify">
+                            MARKET_GAP: // 传统的笔记工具要求你手动搬运，而通用的转写工具缺乏上下文理解。BiliBiliNoteBook
+                            是两者之间的桥梁——它不只是工具，它是你的第二大脑前庭，负责将 Bilibili 庞大的非结构化数据清洗、提炼，并注入你的本地知识库。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 px-4 bg-gradient-to-b from-transparent to-black/40">
+            <div class="max-w-7xl mx-auto">
+                <div class="font-mono text-center text-xs text-white/30 mb-16 tracking-[0.5em]" v-observe>
+                    SYSTEM_CAPABILITIES</div>
+
+                <div class="grid grid-cols-1 md:grid-cols-6 grid-rows-2 gap-4 md:gap-8 h-auto md:h-[800px]">
+
+                    <div class="md:col-span-4 md:row-span-2 tactile-card p-8 md:p-12 relative overflow-hidden group"
+                        v-observe>
+                        <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="0.5">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M15 9l-6 6M9 9l6 6" />
+                            </svg>
+                        </div>
+                        <div class="h-full flex flex-col justify-between relative z-10">
+                            <div>
+                                <div class="font-mono text-accent text-xs mb-2">01 / TRANSFORM</div>
+                                <h3 class="font-display text-3xl md:text-4xl text-starlight mb-4">从「视频集」到「系列专栏」</h3>
+                                <p class="text-white/50 font-sans max-w-md">
+                                    输入一个链接，系统自动捕获合集、收藏夹或博主全部视频。AI 将在后台并行处理，重构时间线，提取关键帧，生成带有时间戳的深度文章。
+                                </p>
+                            </div>
+                            <div
+                                class="mt-8 border border-white/5 bg-black/20 p-4 rounded font-mono text-xs text-green-400/80">
+                                <div class="flex justify-between mb-2 text-white/20">
+                                    <span>TASK_QUEUE</span><span>STATUS: RUNNING</span></div>
+                                <div class="space-y-1">
+                                    <div class="flex gap-2"><span>[+]</span> <span class="text-white/60">Fetching
+                                            "Economics_101_Ep01"...</span> <span class="ml-auto">DONE</span></div>
+                                    <div class="flex gap-2"><span>[+]</span> <span class="text-white/60">Transcribing
+                                            Audio Stream...</span> <span class="ml-auto">300ms</span></div>
+                                    <div class="flex gap-2"><span>[+]</span> <span class="text-white/60">Generating
+                                            Structured Notes...</span> <span class="ml-auto">WRITING</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 md:row-span-1 tactile-card p-8 flex flex-col justify-center group"
+                        v-observe>
+                        <div class="font-mono text-accent text-xs mb-2">02 / QUERY</div>
+                        <h3 class="font-serif text-2xl text-starlight mb-3">跨维度问答</h3>
+                        <p class="text-white/50 text-sm mb-4">
+                            不仅仅是搜索。通过 RAG 技术，你可以向整个视频合集提问，AI 会串联多个视频的知识点给出综述。
+                        </p>
+                        <div
+                            class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            ?</div>
+                    </div>
+
+                    <div class="md:col-span-2 md:row-span-1 tactile-card p-8 flex flex-col justify-center" v-observe>
+                        <div class="font-mono text-accent text-xs mb-2">03 / SECURITY</div>
+                        <h3 class="font-serif text-2xl text-starlight mb-3">Rust 本地核心</h3>
+                        <p class="text-white/50 text-sm">
+                            <span class="text-white">50MB</span> 极简体积，离线可用。你的知识库只属于你，不上传云端，无隐私泄露风险。
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="py-32 px-6 md:px-20">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-16 md:gap-32">
+                    <div class="flex-1" v-observe>
+                        <div class="font-display text-5xl text-white/10 absolute -ml-8 -mt-8 select-none">I</div>
+                        <h4 class="font-serif text-3xl mb-6 relative z-10">深度学习者<br><span
+                                class="text-lg font-sans font-light text-white/40">The Deep Learner</span></h4>
+                        <p class="text-white/60 leading-relaxed font-light">
+                            你不仅仅是看视频。你要构建体系。无论是“罗翔说刑法”还是“线性代数”，你需要将几百个小时的影像资料，转化为可检索、可引用的私人维基百科。
+                        </p>
+                    </div>
+                    <div class="flex-1 delay-200" v-observe>
+                        <div class="font-display text-5xl text-white/10 absolute -ml-8 -mt-8 select-none">II</div>
+                        <h4 class="font-serif text-3xl mb-6 relative z-10">效率记录者<br><span
+                                class="text-lg font-sans font-light text-white/40">The Efficiency Recorder</span></h4>
+                        <p class="text-white/60 leading-relaxed font-light">
+                            你需要灵感，而不是噪音。当你听到一个金句，一个独特的观点，你希望它立刻被捕捉，并自动归档到你的 Obsidian 或 Notion 中，而不是消散在时间轴里。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="py-24 px-6 border-t border-white/5 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-t from-blue-900/10 to-transparent pointer-events-none"></div>
+            <div class="max-w-4xl mx-auto text-center relative z-10">
+                <h2 class="font-display text-4xl md:text-6xl mb-8 tracking-tight">准备好重构你的知识流了吗？</h2>
+                <p class="font-mono text-white/40 mb-12">AVAILABLE FOR MACOS, WINDOWS & LINUX</p>
+
+                <a href="#" class="inline-block relative group">
+                    <span
+                        class="absolute inset-0 bg-accent blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></span>
+                    <div
+                        class="relative bg-white text-black px-12 py-5 font-mono font-bold text-lg tracking-wider hover:bg-starlight transition-colors">
+                        DOWNLOAD BETA
+                    </div>
+                </a>
+
+                <div class="mt-20 flex justify-between items-end text-xs font-mono text-white/20">
+                    <div>Based on Bilibili API</div>
+                    <div>© 2024 BiliBiliNoteBook. Crafted with Logic & Art.</div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const { createApp, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // 简单的 Intersection Observer 用于滚动动画
+                onMounted(() => {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('observe-visible');
+                                entry.target.classList.remove('observe-enter');
+                            }
+                        });
+                    }, { threshold: 0.1 });
+
+                    document.querySelectorAll('[v-observe]').forEach(el => {
+                        el.classList.add('observe-enter');
+                        observer.observe(el);
+                    });
+                });
+
+                return {};
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>

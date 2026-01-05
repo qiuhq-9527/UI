@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiliBiliNoteBook | 视频即知识</title>
+
+    <!-- Fonts: Playfair Display (Display), Crimson Pro (Body), JetBrains Mono (Code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&family=JetBrains+Mono:wght@300;400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: {
+                            50: '#fdfbf7',
+                            100: '#f9f5eb', // Main Background
+                            200: '#f2e8d5',
+                            300: '#e8d5b5',
+                            800: '#5c4d3c',
+                            900: '#3d3228',
+                        },
+                        ink: {
+                            400: '#5a6b8c',
+                            800: '#1a202c',
+                            900: '#0f1219', // Main Text
+                        },
+                        gold: {
+                            400: '#d4af37',
+                            500: '#c5a028', // Accent
+                            600: '#a6841d',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['"Playfair Display"', 'serif'],
+                        body: ['"Crimson Pro"', 'serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.05%22/%3E%3C/svg%3E')",
+                        'oil-gradient': "radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.15), transparent 40%), radial-gradient(circle at 80% 70%, rgba(90, 107, 140, 0.1), transparent 40%)",
+                    },
+                    boxShadow: {
+                        'tactile': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.5), 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)',
+                        'tactile-hover': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.6), 0 10px 30px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04)',
+                        'inner-glow': 'inset 0 0 20px rgba(212, 175, 55, 0.05)',
+                    },
+                    animation: {
+                        'reveal-up': 'revealUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                        'reveal-up-delay': 'revealUp 1.2s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                        'fade-in': 'fadeIn 1.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        revealUp: {
+                            '0%': { opacity: '0', transform: 'translateY(40px)', filter: 'blur(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Global Styles for the "Oil Painting" feel */
+        body {
+            background-color: #f9f5eb;
+            color: #0f1219;
+            overflow-x: hidden;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom Selection */
+        ::selection {
+            background: rgba(212, 175, 55, 0.2);
+            color: #0f1219;
+        }
+
+        /* Hide scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(92, 77, 60, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(92, 77, 60, 0.4);
+        }
+
+        .text-justify-inter {
+            text-align: justify;
+            text-justify: inter-ideograph;
+        }
+    </style>
+</head>
+
+<body class="font-body antialiased selection:bg-gold-200 selection:text-ink-900">
+
+    <!-- Noise Texture Overlay -->
+    <div class="fixed inset-0 pointer-events-none z-50 bg-noise opacity-60 mix-blend-multiply"></div>
+
+    <!-- Ambient Background Light -->
+    <div class="fixed inset-0 pointer-events-none z-0 bg-oil-gradient"></div>
+
+    <div id="app" class="relative z-10">
+
+        <!-- Navigation (Minimalist) -->
+        <nav class="fixed top-0 w-full p-6 md:p-10 flex justify-between items-center z-40 mix-blend-darken">
+            <div class="font-display font-bold text-xl tracking-tighter opacity-80">BB.NoteBook</div>
+            <div class="hidden md:flex gap-8 font-mono text-xs tracking-widest uppercase text-ink-400">
+                <a href="#philosophy" class="hover:text-ink-900 transition-colors">Philosophy</a>
+                <a href="#features" class="hover:text-ink-900 transition-colors">Features</a>
+                <a href="#download" class="hover:text-ink-900 transition-colors">Access</a>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header class="min-h-screen flex flex-col justify-center px-6 md:px-20 lg:px-32 pt-20 relative overflow-hidden">
+            <div class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+
+                <!-- Left: Main Title -->
+                <div class="lg:col-span-8 space-y-8">
+                    <div class="inline-block border-b border-ink-900/20 pb-2 mb-4 animate-reveal-up">
+                        <span class="font-mono text-xs tracking-[0.2em] text-gold-600 uppercase">Knowledge Management
+                            System</span>
+                    </div>
+
+                    <h1
+                        class="font-display text-6xl md:text-8xl lg:text-9xl leading-[0.9] text-ink-900 tracking-tight animate-reveal-up">
+                        Video <br>
+                        <span class="italic font-light text-ink-400">to</span> Knowledge.
+                    </h1>
+
+                    <p
+                        class="font-body text-xl md:text-2xl text-ink-800/80 max-w-2xl leading-relaxed mt-8 animate-reveal-up-delay text-justify-inter">
+                        BiliBiliNoteBook 是一款为深度学习者打造的 AI 知识引擎。它将流动的视频凝固为永恒的文字，让稍纵即逝的灵感成为可被检索的智慧。
+                    </p>
+
+                    <div class="pt-10 animate-reveal-up-delay" style="animation-delay: 0.4s;">
+                        <button
+                            class="group relative px-8 py-4 bg-ink-900 text-paper-100 font-mono text-sm tracking-widest uppercase overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
+                            <span class="relative z-10 group-hover:text-gold-400 transition-colors">Start
+                                Thinking</span>
+                            <div
+                                class="absolute inset-0 bg-ink-800 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out">
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Abstract Visual / Metadata -->
+                <div class="lg:col-span-4 flex flex-col justify-end pb-4 animate-reveal-up-delay"
+                    style="animation-delay: 0.6s;">
+                    <div class="p-6 bg-white/40 backdrop-blur-sm border border-white/20 shadow-tactile rounded-sm">
+                        <div
+                            class="font-mono text-[10px] text-ink-400 uppercase tracking-widest mb-4 border-b border-ink-900/10 pb-2">
+                            System Status</div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-display italic text-lg text-ink-900">Accuracy</span>
+                                <span class="font-mono text-xs">95%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-display italic text-lg text-ink-900">Speed</span>
+                                <span class="font-mono text-xs">300ms/10min</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-display italic text-lg text-ink-900">Engine</span>
+                                <span class="font-mono text-xs">Rust + Tauri</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scroll Indicator -->
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="text-ink-900">
+                    <path d="M12 5v14M19 12l-7 7-7-7" stroke-width="1" stroke-linecap="square" />
+                </svg>
+            </div>
+        </header>
+
+        <!-- Philosophy Section -->
+        <section id="philosophy" class="py-32 px-6 md:px-20 bg-paper-200/30 relative">
+            <div class="max-w-5xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+                    <div class="order-2 md:order-1">
+                        <div class="aspect-[3/4] bg-ink-900 relative overflow-hidden shadow-2xl">
+                            <!-- Abstract Art Placeholder -->
+                            <img src="https://images.unsplash.com/photo-1547891654-e66ed7ebb968?q=80&w=2670&auto=format&fit=crop"
+                                alt="Abstract Oil Painting"
+                                class="object-cover w-full h-full opacity-80 mix-blend-overlay grayscale hover:grayscale-0 transition-all duration-1000 ease-in-out">
+                            <div class="absolute inset-0 border border-white/10 m-4"></div>
+                        </div>
+                    </div>
+                    <div class="order-1 md:order-2 space-y-8">
+                        <h2 class="font-display text-4xl md:text-5xl text-ink-900 leading-tight">
+                            The Philosophy of <br>
+                            <span class="text-gold-600 italic">Accumulation</span>
+                        </h2>
+                        <div class="w-12 h-0.5 bg-ink-900/20"></div>
+                        <p class="font-body text-xl text-ink-800/80 leading-relaxed text-justify-inter">
+                            在这个信息爆炸的时代，我们不缺内容，缺的是“内化”的能力。B站收藏夹里躺着的不是视频，而是我们未竟的求知欲。
+                        </p>
+                        <p class="font-body text-lg text-ink-800/60 leading-relaxed text-justify-inter">
+                            BiliBiliNoteBook 不仅仅是一个工具，它是一种抵抗遗忘的仪式。它将线性的视频流重塑为结构化的知识晶体，让每一次点击播放，都成为构建个人知识大厦的坚实砖石。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-32 px-6 md:px-20 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-20">
+                    <span class="font-mono text-xs tracking-[0.2em] text-gold-600 uppercase">Core Capabilities</span>
+                    <h2 class="font-display text-5xl md:text-6xl text-ink-900 mt-4">Craftsmanship</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div
+                        class="group p-8 bg-white/40 backdrop-blur-md border-t border-white/60 shadow-tactile hover:shadow-tactile-hover transition-all duration-500 rounded-sm">
+                        <div class="font-mono text-4xl text-ink-200 mb-6 group-hover:text-gold-500 transition-colors">01
+                        </div>
+                        <h3 class="font-display text-2xl text-ink-900 mb-4">Collection</h3>
+                        <p class="font-body text-lg text-ink-800/70 leading-relaxed">
+                            一键获取合集、博主全部视频或收藏夹。将散落的视频链接汇聚成有序的知识列表，构建您的专属学习空间。
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div
+                        class="group p-8 bg-white/40 backdrop-blur-md border-t border-white/60 shadow-tactile hover:shadow-tactile-hover transition-all duration-500 rounded-sm md:translate-y-12">
+                        <div class="font-mono text-4xl text-ink-200 mb-6 group-hover:text-gold-500 transition-colors">02
+                        </div>
+                        <h3 class="font-display text-2xl text-ink-900 mb-4">Transmutation</h3>
+                        <p class="font-body text-lg text-ink-800/70 leading-relaxed">
+                            AI 驱动的炼金术。300毫秒内将视频转写为结构化文章，包含封面、重点摘要与时间戳，让知识脱离时间的束缚。
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div
+                        class="group p-8 bg-white/40 backdrop-blur-md border-t border-white/60 shadow-tactile hover:shadow-tactile-hover transition-all duration-500 rounded-sm md:translate-y-24">
+                        <div class="font-mono text-4xl text-ink-200 mb-6 group-hover:text-gold-500 transition-colors">03
+                        </div>
+                        <h3 class="font-display text-2xl text-ink-900 mb-4">Dialogue</h3>
+                        <p class="font-body text-lg text-ink-800/70 leading-relaxed">
+                            与您的知识库对话。基于 RAG 技术，跨越多个视频进行关联问答。不再是单向接收，而是思想的共鸣与回响。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detail/Tech Section -->
+        <section class="py-32 px-6 md:px-20 bg-ink-900 text-paper-100 relative overflow-hidden">
+            <!-- Background Decoration -->
+            <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-ink-800 to-transparent opacity-50">
+            </div>
+
+            <div class="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div>
+                    <h2 class="font-display text-4xl md:text-5xl mb-8">Technical <span
+                            class="italic font-light text-gold-400">Elegance</span></h2>
+                    <div class="space-y-6 font-mono text-sm tracking-wide text-paper-300">
+                        <div class="flex items-center gap-4 border-b border-white/10 pb-4">
+                            <span class="w-24 text-gold-500">CORE</span>
+                            <span>Rust + Tauri ( < 50MB )</span>
+                        </div>
+                        <div class="flex items-center gap-4 border-b border-white/10 pb-4">
+                            <span class="w-24 text-gold-500">AI MODEL</span>
+                            <span>Whisper + LLM (95% Accuracy)</span>
+                        </div>
+                        <div class="flex items-center gap-4 border-b border-white/10 pb-4">
+                            <span class="w-24 text-gold-500">SYNC</span>
+                            <span>Notion, Obsidian, Yuque</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <p class="font-body text-xl md:text-2xl leading-relaxed text-paper-200/80 italic">
+                        "We shape our tools and thereafter our tools shape us."
+                    </p>
+                    <p class="font-mono text-xs text-gold-500 mt-4 uppercase tracking-widest">— Marshall McLuhan</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-20 px-6 md:px-20 border-t border-ink-900/10 bg-paper-100">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-10">
+                <div>
+                    <div class="font-display font-bold text-2xl tracking-tighter mb-4">BiliBiliNoteBook</div>
+                    <p class="font-body text-ink-800/60 max-w-xs">
+                        Designed for the deep learners and the efficiency seekers.
+                    </p>
+                </div>
+                <div class="flex gap-8 font-mono text-xs tracking-widest uppercase text-ink-400">
+                    <a href="#" class="hover:text-ink-900">Github</a>
+                    <a href="#" class="hover:text-ink-900">Documentation</a>
+                    <a href="#" class="hover:text-ink-900">Privacy</a>
+                </div>
+            </div>
+            <div class="mt-20 text-center font-mono text-[10px] text-ink-300 uppercase tracking-widest">
+                © 2024 BiliBiliNoteBook. All Rights Reserved.
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const isLoaded = ref(false);
+
+                // Simple on-mount animation trigger
+                setTimeout(() => {
+                    isLoaded.value = true;
+                }, 100);
+
+                return {
+                    isLoaded
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

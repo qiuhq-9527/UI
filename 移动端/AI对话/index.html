@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>艺术AI助手 | Boutique AI</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Inter:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Lucide Icons (Optional but nice for premium feel) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tcm: {
+                            base: '#f4f1ea', // 宣纸色
+                            ink: '#2c3e50',  // 墨色
+                            teal: '#2d5a57', // 黛绿
+                            vermilion: '#a5433d', // 官窑红
+                            ochre: '#c49a6c' // 赭石
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif SC"', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/css">
+        /* 1. 全局样式 */
+        body {
+            background-color: #f4f1ea;
+            color: #2c3e50;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            /* 隐藏全局滚动条 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 2. 噪点纹理 */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* 3. 环境光晕 */
+        .ambient-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle at 20% 30%, rgba(45, 90, 87, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(165, 67, 61, 0.05) 0%, transparent 40%);
+            z-index: 0;
+        }
+
+        /* 4. 油画玻璃态 */
+        .oil-glass {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(25px) saturate(160%);
+            -webkit-backdrop-filter: blur(25px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: inset 0 0 1px 1px rgba(255, 255, 255, 0.2),
+                0 10px 30px -10px rgba(44, 62, 80, 0.08);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .oil-glass:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            word-wrap: break-word;
+            padding: 1rem 1.25rem;
+            border-radius: 1.5rem;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: rgba(45, 90, 87, 0.08);
+            border: 1px solid rgba(45, 90, 87, 0.15);
+            color: #2d5a57;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(15px) saturate(140%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .accent-dot {
+            width: 4px;
+            height: 4px;
+            background-color: #a5433d;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* 动画 */
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: all 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        /* 背景水印 */
+        .watermark {
+            position: fixed;
+            bottom: 5%;
+            right: 5%;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(44, 62, 80, 0.03);
+            pointer-events: none;
+            z-index: 0;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="noise-overlay"></div>
+    <div class="ambient-glow"></div>
+    <div class="watermark">AI</div>
+
+    <div id="app" class="relative z-10 flex flex-col h-full max-w-2xl mx-auto w-full px-4 pt-6 pb-8 overflow-hidden">
+
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center">
+                <span class="accent-dot"></span>
+                <h1 class="font-serif text-2xl font-black text-tcm-ink">Boutique AI</h1>
+            </div>
+            <div class="flex space-x-2">
+                <div
+                    class="oil-glass px-3 py-1.5 rounded-full text-[10px] font-bold text-tcm-vermilion tracking-widest uppercase flex items-center">
+                    <span class="w-1.5 h-1.5 bg-tcm-vermilion rounded-full animate-pulse mr-2"></span>
+                    Live
+                </div>
+            </div>
+        </header>
+
+        <!-- Bento Stats Row -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="oil-glass p-3 rounded-2xl flex flex-col justify-between">
+                <span class="text-[9px] text-tcm-ink/40 uppercase font-bold tracking-tighter">Tokens</span>
+                <span class="font-serif text-lg font-black text-tcm-ink">2.4k</span>
+            </div>
+            <div class="col-span-2 oil-glass p-3 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[9px] text-tcm-ink/40 uppercase font-bold tracking-tighter block">Model</span>
+                    <span class="text-xs font-semibold text-tcm-teal">GPT-4.0 Artisan</span>
+                </div>
+                <div class="flex space-x-1">
+                    <div class="w-1 h-3 bg-tcm-teal/30 rounded-full"></div>
+                    <div class="w-1 h-5 bg-tcm-teal/60 rounded-full"></div>
+                    <div class="w-1 h-4 bg-tcm-teal/40 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <main class="flex-1 overflow-y-auto flex flex-col space-y-4 mb-6 pr-2 scroll-smooth" id="chat-container">
+            <transition-group name="fade">
+                <div v-for="(msg, index) in messages" :key="index"
+                    :class="['message-bubble', msg.role === 'user' ? 'user-message' : 'bot-message']">
+                    <p class="text-sm leading-relaxed" v-html="formatMessage(msg.content)"></p>
+                </div>
+            </transition-group>
+            <!-- Typing Indicator -->
+            <div v-if="isTyping" class="message-bubble bot-message w-16">
+                <div class="flex space-x-1 justify-center items-center h-4">
+                    <div class="w-1 h-1 bg-tcm-teal rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-1 h-1 bg-tcm-teal rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-1 h-1 bg-tcm-teal rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area (Bento Style) -->
+        <footer class="w-full">
+            <div class="oil-glass rounded-2xl p-4 flex flex-col space-y-3">
+                <div class="flex items-center justify-between px-2">
+                    <span class="text-[10px] text-tcm-ochre uppercase tracking-tighter font-medium">Message Input</span>
+                    <div class="flex space-x-2">
+                        <div class="w-2 h-2 rounded-full bg-tcm-teal/20"></div>
+                        <div class="w-2 h-2 rounded-full bg-tcm-vermilion/20"></div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <textarea v-model="inputMessage" @keydown.enter.exact.prevent="sendMessage" rows="3"
+                        class="w-full bg-transparent border-none focus:ring-0 text-sm placeholder-tcm-ink/30 resize-none font-sans leading-relaxed"
+                        placeholder="在此输入您的思绪..."></textarea>
+
+                    <button @click="sendMessage" :disabled="!inputMessage.trim() || isTyping"
+                        class="absolute bottom-2 right-2 oil-glass bg-tcm-ink text-white px-5 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-30 disabled:transform-none">
+                        发送
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-[10px] text-center mt-4 text-tcm-ink/40 tracking-wider">
+                &copy; 2026 DIGITAL ARTISAN &nbsp;•&nbsp; MINIMALIST ARCHITECTURE
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const messages = ref([
+                    { role: 'bot', content: '您好。我是您的数字助理。在这个充满艺术与理性的空间里，我们可以探讨任何您感兴趣的话题。' }
+                ]);
+                const inputMessage = ref('');
+                const isTyping = ref(false);
+
+                const scrollToBottom = () => {
+                    nextTick(() => {
+                        const container = document.getElementById('chat-container');
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
+                };
+
+                const formatMessage = (content) => {
+                    return content.replace(/\n/g, '<br>');
+                };
+
+                const sendMessage = async () => {
+                    if (!inputMessage.value.trim() || isTyping.value) return;
+
+                    const userText = inputMessage.value;
+                    messages.value.push({ role: 'user', content: userText });
+                    inputMessage.value = '';
+                    scrollToBottom();
+
+                    // Mock AI Response
+                    isTyping.value = true;
+                    setTimeout(() => {
+                        let botResponse = '';
+                        if (userText.includes('你好')) {
+                            botResponse = '你好。在这个数字化的宣纸之上，很高兴与您交流。';
+                        } else if (userText.includes('谁')) {
+                            botResponse = '我是一个被注入了“人文灵魂”的AI。我追求极致的简洁与深邃。';
+                        } else {
+                            botResponse = '这是一个深邃的思考。在数字与艺术的交界处，我们总能发现不一样的风景。如果您需要更深入的探讨，请随时告诉我。';
+                        }
+
+                        messages.value.push({ role: 'bot', content: botResponse });
+                        isTyping.value = false;
+                        scrollToBottom();
+                    }, 1500);
+                };
+
+                onMounted(() => {
+                    scrollToBottom();
+                    lucide.createIcons();
+                });
+
+                return {
+                    messages,
+                    inputMessage,
+                    isTyping,
+                    sendMessage,
+                    formatMessage
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

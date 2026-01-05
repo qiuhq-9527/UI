@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Artisan Chat</title>
+
+    <!-- 字体引入 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Serif+SC:wght@500;700;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Vue 3 (CDN) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tcm: {
+                            base: '#f4f1ea', // 宣纸基底
+                            ink: '#2c3e50',  // 墨色
+                            teal: '#2d5a57', // 黛绿
+                            vermilion: '#a5433d', // 朱砂
+                            ochre: '#c49a6c', // 赭石
+                            glass: 'rgba(255, 255, 255, 0.45)'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif SC"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 全局噪点滤镜 (模拟纸张颗粒) */
+        .paper-texture {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.04;
+        }
+
+        /* 隐藏滚动条但保留功能 */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 核心美学：油画玻璃态 */
+        .oil-glass {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow:
+                0 10px 30px -10px rgba(44, 62, 80, 0.08),
+                inset 0 0 1px 1px rgba(255, 255, 255, 0.4);
+        }
+
+        /* 苹果式软阴影 */
+        .apple-shadow {
+            box-shadow: 0 10px 30px -10px rgba(44, 62, 80, 0.08);
+        }
+
+        /* 文字阴影，增强浮雕感 */
+        .text-shadow-soft {
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+        }
+
+        /* 消息气泡特殊处理 */
+        .bubble-user {
+            background: #2d5a57;
+            /* 黛绿 */
+            color: white;
+            box-shadow: 0 4px 12px rgba(45, 90, 87, 0.2);
+        }
+
+        .bubble-ai {
+            background: rgba(255, 255, 255, 0.6);
+            color: #2c3e50;
+            /* 墨色 */
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        /* 水印背景 */
+        .watermark {
+            position: absolute;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            color: rgba(165, 67, 61, 0.03);
+            /* 极淡的朱砂色 */
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* 输入框光标 */
+        textarea:focus {
+            outline: none;
+        }
+
+        /* 触觉反馈动画类 */
+        .active-press:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body class="bg-[#f4f1ea] text-tcm-ink font-sans antialiased overflow-hidden h-screen w-screen relative">
+
+    <!-- 1. 全局噪点层 -->
+    <svg class="paper-texture">
+        <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+    </svg>
+
+    <!-- 2. 环境光晕背景 -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-20%] w-[80%] h-[60%] bg-[#c49a6c]/10 rounded-full blur-[100px]"></div>
+        <!-- 赭石光晕 -->
+        <div class="absolute bottom-[-10%] right-[-10%] w-[60%] h-[50%] bg-[#2d5a57]/10 rounded-full blur-[80px]"></div>
+        <!-- 黛绿光晕 -->
+    </div>
+
+    <!-- 3. 背景水印 -->
+    <div
+        class="watermark text-[12rem] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-[-10deg] leading-none whitespace-nowrap">
+        AI ARTISAN
+    </div>
+
+    <!-- 4. Vue 应用容器 -->
+    <div id="app" class="relative z-10 h-full flex flex-col max-w-md mx-auto md:border-x md:border-white/30">
+
+        <!-- Header: 玻璃态导航 -->
+        <header class="oil-glass px-5 py-4 flex justify-between items-center sticky top-0 z-20 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full overflow-hidden border border-white/50 relative">
+                    <img src="https://picsum.photos/seed/art/200/200" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h1 class="font-serif font-bold text-lg text-tcm-ink leading-tight text-shadow-soft">墨韵 · 灵感</h1>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-tcm-vermilion animate-pulse"></span>
+                        <span class="text-xs text-tcm-ink/60 font-light tracking-wide">在线沉思中</span>
+                    </div>
+                </div>
+            </div>
+            <button
+                class="active-press w-8 h-8 rounded-full bg-tcm-ink/5 flex items-center justify-center hover:bg-tcm-ink/10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="#2c3e50" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Content: Bento Grid 布局 -->
+        <main class="flex-1 overflow-y-auto scrollbar-hide p-4 pb-32 relative">
+
+            <!-- 顶部非对称状态栏 -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <!-- 视觉重心：纵向长卡片 -->
+                <div
+                    class="oil-glass rounded-2xl p-4 row-span-2 flex flex-col justify-between relative overflow-hidden group active-press transition-all">
+                    <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-tcm-teal" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="text-xs font-mono text-tcm-ink/50 tracking-wider uppercase">Model Status</span>
+                        <div class="text-3xl font-serif font-bold text-tcm-ink mt-1">GPT-4o <span
+                                class="text-sm font-sans font-normal text-tcm-vermilion">Pro</span></div>
+                    </div>
+                    <div>
+                        <div class="w-full bg-tcm-ink/5 h-1.5 rounded-full overflow-hidden mb-2">
+                            <div class="bg-gradient-to-r from-tcm-ochre to-tcm-vermilion h-full w-[85%] rounded-full">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-tcm-ink/40 font-mono">
+                            <span>Context: 85%</span>
+                            <span>Latency: 12ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 辅助信息：方形小卡片 -->
+                <div class="oil-glass rounded-2xl p-3 flex items-center justify-between active-press">
+                    <div>
+                        <div class="text-[10px] text-tcm-ink/40 font-mono mb-0.5">TOKENS</div>
+                        <div class="font-serif font-bold text-xl text-tcm-teal">1,024</div>
+                    </div>
+                    <div class="flex flex-col gap-1 items-end">
+                        <!-- 模拟数据跳动条 -->
+                        <div class="flex gap-0.5 items-end h-3">
+                            <div class="w-1 bg-tcm-vermilion/40 h-[40%] rounded-full animate-pulse"></div>
+                            <div class="w-1 bg-tcm-vermilion/60 h-[80%] rounded-full animate-pulse"
+                                style="animation-delay: 0.1s"></div>
+                            <div class="w-1 bg-tcm-vermilion/80 h-[60%] rounded-full animate-pulse"
+                                style="animation-delay: 0.2s"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="oil-glass rounded-2xl p-3 flex items-center justify-between active-press">
+                    <div>
+                        <div class="text-[10px] text-tcm-ink/40 font-mono mb-0.5">TEMP</div>
+                        <div class="font-serif font-bold text-xl text-tcm-ink">0.7</div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-tcm-ochre" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 聊天记录区域 -->
+            <div class="space-y-6">
+                <div v-for="(msg, index) in messages" :key="index" class="flex flex-col gap-2"
+                    :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+
+                    <!-- 消息发送者 -->
+                    <div class="flex items-center gap-2 px-1">
+                        <span v-if="msg.role === 'assistant'"
+                            class="font-serif text-xs text-tcm-ink/50 tracking-widest uppercase">Artisan AI</span>
+                        <span v-else class="font-serif text-xs text-tcm-ink/50 tracking-widest uppercase">You</span>
+                        <!-- 分割线 -->
+                        <div class="h-[1px] w-8 bg-gradient-to-r from-tcm-ink/10 to-transparent"></div>
+                    </div>
+
+                    <!-- 消息气泡 -->
+                    <div class="max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed relative transition-all duration-300"
+                        :class="msg.role === 'user' ? 'bubble-user rounded-tr-none text-white/95' : 'bubble-ai rounded-tl-none'">
+
+                        <!-- 装饰点 -->
+                        <span v-if="msg.role === 'assistant'"
+                            class="absolute top-3 left-3 w-1 h-1 rounded-full bg-tcm-vermilion opacity-60"></span>
+
+                        <!-- 文本内容 -->
+                        <div class="font-serif" v-html="msg.content"></div>
+                    </div>
+
+                    <!-- 时间戳 -->
+                    <span class="text-[10px] text-tcm-ink/30 font-mono">{{ msg.time }}</span>
+                </div>
+
+                <!-- AI 正在输入指示器 -->
+                <div v-if="isTyping" class="flex items-start gap-3 px-1 mt-4">
+                    <div class="oil-glass px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center">
+                        <span class="w-1.5 h-1.5 bg-tcm-teal rounded-full animate-bounce"></span>
+                        <span class="w-1.5 h-1.5 bg-tcm-teal rounded-full animate-bounce"
+                            style="animation-delay: 0.2s"></span>
+                        <span class="w-1.5 h-1.5 bg-tcm-teal rounded-full animate-bounce"
+                            style="animation-delay: 0.4s"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部安全垫 -->
+            <div class="h-12"></div>
+        </main>
+
+        <!-- Footer: 输入框区域 (磨砂玻璃) -->
+        <footer class="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 p-4 z-30">
+            <div class="oil-glass rounded-full p-2 flex items-end gap-2 shadow-2xl ring-1 ring-white/40">
+                <button
+                    class="w-10 h-10 rounded-full bg-tcm-ink/5 flex items-center justify-center shrink-0 active-press transition-all hover:bg-tcm-ink/10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-tcm-ink" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </button>
+
+                <div
+                    class="flex-1 bg-white/40 rounded-full border border-white/50 focus-within:bg-white/60 transition-colors">
+                    <textarea v-model="inputText" @keydown.enter.prevent="handleSend" rows="1" placeholder="在此注入灵感..."
+                        class="w-full bg-transparent px-4 py-2.5 text-sm text-tcm-ink placeholder-tcm-ink/30 font-serif resize-none max-h-32 scrollbar-hide rounded-full focus:outline-none leading-relaxed"></textarea>
+                </div>
+
+                <button @click="handleSend" :disabled="!inputText.trim()"
+                    class="w-10 h-10 rounded-full bg-tcm-ink flex items-center justify-center shrink-0 active-press transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-tcm-teal group">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 text-white transform group-hover:translate-x-0.5 transition-transform"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
+            </div>
+            <div class="text-center mt-2">
+                <span class="text-[9px] text-tcm-ink/20 font-mono tracking-widest uppercase">Powered by Artisan
+                    Engine</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Vue Logic -->
+    <script>
+        const { createApp, ref, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const inputText = ref('');
+                const isTyping = ref(false);
+                const messages = ref([
+                    {
+                        role: 'assistant',
+                        content: '您好，我是您的数字画师助手。您想要探索怎样的色彩与构图？',
+                        time: '09:41 AM'
+                    }
+                ]);
+
+                const scrollToBottom = async () => {
+                    await nextTick();
+                    const main = document.querySelector('main');
+                    main.scrollTop = main.scrollHeight;
+                };
+
+                const handleSend = () => {
+                    const text = inputText.value.trim();
+                    if (!text) return;
+
+                    // 添加用户消息
+                    messages.value.push({
+                        role: 'user',
+                        content: text.replace(/\n/g, '<br>'),
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+
+                    inputText.value = '';
+                    scrollToBottom();
+
+                    // 模拟 AI 思考与回复
+                    isTyping.value = true;
+                    scrollToBottom();
+
+                    setTimeout(() => {
+                        isTyping.value = false;
+                        messages.value.push({
+                            role: 'assistant',
+                            content: '这是一个非常有趣的构思。在古典美学中，这种“留白”的处理方式往往能带来更强的视觉张力。我们可以尝试使用更丰富的赭石色调来作为过渡。',
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        });
+                        scrollToBottom();
+                    }, 1500 + Math.random() * 1000);
+                };
+
+                return {
+                    inputText,
+                    messages,
+                    isTyping,
+                    handleSend
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
